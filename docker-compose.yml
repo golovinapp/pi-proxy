@@ -1,0 +1,53 @@
+version: "3.8"
+
+services:
+  threeproxy:
+    build: ./threeproxy
+    container_name: threeproxy
+    environment:
+      - PROXY_USER=${PROXY_USER}
+      - PROXY_PASS=${PROXY_PASS}
+      - PROXY_MAX_CONN=${PROXY_MAX_CONN}
+      - TZ=${TZ}
+    volumes:
+      - ./logs:/var/log/3proxy
+    expose:
+      - "3128"
+      - "1080"
+    restart: unless-stopped
+
+  stunnel:
+    build: ./stunnel
+    container_name: stunnel443
+    depends_on:
+      - threeproxy
+    environment:
+      - STUNNEL_BACKEND_HOST=threeproxy
+      - STUNNEL_BACKEND_PORT=3128
+      - STUNNEL_ACCEPT_PORT=443
+      - STUNNEL_CERT_FULLCHAIN=/certs/fullchain.pem
+      - STUNNEL_CERT_PRIVKEY=/certs/privkey.pem
+      - TZ=${TZ}
+    ports:
+      - "443:443"
+    volumes:
+      - ./certs:/certs:ro
+    restart: unless-stopped
+
+  acme:
+    build: ./acme
+    container_name: acme_certbotless
+    environment:
+      - ACME_DOMAIN=${ACME_DOMAIN}
+      - ACME_EMAIL=${ACME_EMAIL}
+      - ACME_STAGING=${ACME_STAGING}
+      - TZ=${TZ}
+    ports:
+      - "80:80"
+    volumes:
+      - ./certs:/certs
+      - acme_home:/acme.sh
+    restart: unless-stopped
+
+volumes:
+  acme_home:
