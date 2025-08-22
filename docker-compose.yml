@@ -1,28 +1,28 @@
 version: "3.8"
 
 services:
-  threeproxy:
-    build: ./threeproxy
-    container_name: threeproxy
+  tinyproxy:
+    build: ./tinyproxy
+    container_name: tinyproxy
     environment:
       - PROXY_USER=${PROXY_USER}
       - PROXY_PASS=${PROXY_PASS}
-      - PROXY_MAX_CONN=${PROXY_MAX_CONN}
+      - TP_PORT=3128
+      - TP_MAXCLIENTS=200
+      - TP_TIMEOUT=600
+      - EXTRA_CONNECT_PORTS=8443,9443,2053,2083,2087,2096
       - TZ=${TZ}
-    volumes:
-      - ./logs:/var/log/3proxy
     expose:
       - "3128"
-      - "1080"
     restart: unless-stopped
 
   stunnel:
     build: ./stunnel
     container_name: stunnel443
     depends_on:
-      - threeproxy
+      - tinyproxy
     environment:
-      - STUNNEL_BACKEND_HOST=threeproxy
+      - STUNNEL_BACKEND_HOST=tinyproxy
       - STUNNEL_BACKEND_PORT=3128
       - STUNNEL_ACCEPT_PORT=443
       - STUNNEL_CERT_FULLCHAIN=/certs/fullchain.pem
